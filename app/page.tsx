@@ -35,24 +35,89 @@ export default function Bleed() {
     <PageShell>
       <Stepper current={1} />
 
-      <header className="mb-8">
-        <Eyebrow>tokenTriage · {org.name}</Eyebrow>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">Where the tokens are bleeding</h1>
-        <p className="mt-2 max-w-2xl text-base font-medium text-zinc-700 dark:text-zinc-300">
-          Surfaces where AI token spend is bleeding, then prescribes targeted fixes — smarter prompts,
+      {/* Hero — value prop first, case study second */}
+      <header className="mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <Eyebrow>tokenTriage</Eyebrow>
+          <span className="rounded-full border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            Live case study · {org.name}
+          </span>
+        </div>
+        <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
+          Find the AI token spend that’s quietly bleeding out — and stop it.
+        </h1>
+        <p className="mt-3 max-w-2xl text-base font-medium text-zinc-700 dark:text-zinc-300">
+          tokenTriage surfaces where token spend leaks, then prescribes targeted fixes — smarter prompts,
           aggressive caching, and cheaper model routes.
         </p>
-        <p className="mt-3 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          A 30-day audit of GenAI spend across {org.teams.length} Walmart Global Tech product teams
-          ({org.engineers} engineers). Today the org burns{' '}
-          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{usd(report.orgGross)}/mo</span> on
-          Claude tokens — and{' '}
-          <span className="font-semibold text-red-600 dark:text-red-400">
-            {usd(report.recoverableTotal)} ({pct(report.recoverablePct)})
-          </span>{' '}
-          of it is leaking on three avoidable failure modes.
+        <p className="mt-2 max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">
+          Below: a 30-day audit of {org.name} — {org.teams.length} product teams, {org.engineers} engineers.
         </p>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Link
+            href="/solution"
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+          >
+            See how to recover {usd(report.recoverableTotal)}/mo →
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            Open the live dashboard
+          </Link>
+        </div>
       </header>
+
+      {/* Key numbers — immediate KPI blocks */}
+      <section className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <Card>
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Gross spend / mo</div>
+          <div className="mt-1 text-3xl font-semibold tabular-nums">{usd(report.orgGross)}</div>
+          <div className="mt-0.5 text-xs text-zinc-400">current Claude run-rate</div>
+        </Card>
+        <Card className="border-red-200 dark:border-red-900/60">
+          <div className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">Bleeding / mo</div>
+          <div className="mt-1 text-3xl font-semibold tabular-nums text-red-600 dark:text-red-400">
+            {usd(report.recoverableTotal)}
+          </div>
+          <div className="mt-0.5 text-xs text-red-500/80">{pct(report.recoverablePct)} of gross — recoverable</div>
+        </Card>
+        <Card className="col-span-2 sm:col-span-1">
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Annualized leak</div>
+          <div className="mt-1 text-3xl font-semibold tabular-nums">{usd(report.recoverableTotal * 12)}</div>
+          <div className="mt-0.5 text-xs text-zinc-400">at current run-rate</div>
+        </Card>
+      </section>
+
+      {/* Visual summary — the waste story in one bar */}
+      <section className="mb-8">
+        <Card>
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Where this month’s {usd(report.orgGross)} goes</span>
+            <span className="text-zinc-500">{pct(report.recoverablePct)} recoverable</span>
+          </div>
+          <div className="mt-3 flex h-7 w-full overflow-hidden rounded-lg">
+            <div
+              className="flex items-center justify-center bg-emerald-500 text-xs font-semibold text-white"
+              style={{ width: `${report.recoverablePct * 100}%` }}
+            >
+              {pct(report.recoverablePct)}
+            </div>
+            <div className="flex-1 bg-zinc-300 dark:bg-zinc-700" />
+          </div>
+          <div className="mt-2 flex items-center gap-6 text-xs text-zinc-500">
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500" />
+              Recoverable — {usd(report.recoverableTotal)}
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-zinc-300 dark:bg-zinc-700" />
+              Unavoidable — {usd(report.orgGross - report.recoverableTotal)}
+            </span>
+          </div>
+        </Card>
+      </section>
 
       {/* How this works — orient the viewer before the deep-dive */}
       <section className="mb-8 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
@@ -83,29 +148,6 @@ export default function Bleed() {
           </a>{' '}
           monitors usage, budgets, and alerts in real time.
         </p>
-      </section>
-
-      {/* Headline numbers */}
-      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Card>
-          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Gross spend / mo</div>
-          <div className="mt-1 text-3xl font-semibold tabular-nums">{usd(report.orgGross)}</div>
-          <div className="mt-0.5 text-xs text-zinc-400">current run-rate</div>
-        </Card>
-        <Card className="border-red-200 dark:border-red-900/60">
-          <div className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">
-            Bleeding / mo
-          </div>
-          <div className="mt-1 text-3xl font-semibold tabular-nums text-red-600 dark:text-red-400">
-            {usd(report.recoverableTotal)}
-          </div>
-          <div className="mt-0.5 text-xs text-red-500/80">{pct(report.recoverablePct)} of gross — recoverable</div>
-        </Card>
-        <Card className="col-span-2 sm:col-span-1">
-          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Annualized leak</div>
-          <div className="mt-1 text-3xl font-semibold tabular-nums">{usd(report.recoverableTotal * 12)}</div>
-          <div className="mt-0.5 text-xs text-zinc-400">at current run-rate</div>
-        </Card>
       </section>
 
       {/* The three why's */}
