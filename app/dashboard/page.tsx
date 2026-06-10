@@ -61,16 +61,22 @@ export default function Dashboard() {
     .map((m) => ({ name: MODEL_LABEL[m], value: Math.round(byModel[m]), color: MODEL_COLOR[m] }))
     .sort((a, b) => b.value - a.value);
 
-  // 30-day spend trend
+  // 30-day spend trend. From today, two futures: do-nothing (keeps the current
+  // burn rate, ends over budget) and with-fixes (rate drops, lands back under
+  // budget at the optimized run-rate).
+  const actualToday = report.orgGross * FRAC;
+  const optimizedMonthEnd = report.afterSpend; // fixes-only run-rate, under budget
   const trend: TrendDatum[] = Array.from({ length: DAYS }, (_, i) => {
     const d = i + 1;
     const budgetCum = orgBudget * (d / DAYS);
     const actualCum = report.orgGross * (d / DAYS);
+    const optimizedCum = actualToday + (optimizedMonthEnd - actualToday) * ((d - DAY) / (DAYS - DAY));
     return {
       day: d,
       budget: Math.round(budgetCum),
       actual: d <= DAY ? Math.round(actualCum) : null,
       projected: d >= DAY ? Math.round(actualCum) : null,
+      optimized: d >= DAY ? Math.round(optimizedCum) : null,
     };
   });
 
@@ -124,7 +130,10 @@ export default function Dashboard() {
       <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardTitle>Cumulative spend vs. budget pace</CardTitle>
-          <CardHint>Green is actual to date; red dashed projects month-end at the current rate; grey is the budget line.</CardHint>
+          <CardHint>
+            Solid green is actual to date. From today: red projects month-end at the current rate (over budget);
+            green dashed is the path once the fixes land — back under the grey budget line.
+          </CardHint>
           <div className="mt-4 text-zinc-400 dark:text-zinc-500">
             <SpendTrendChart data={trend} />
           </div>

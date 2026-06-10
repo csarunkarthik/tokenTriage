@@ -57,6 +57,7 @@ export interface TrendDatum {
   budget: number;
   actual: number | null;
   projected: number | null;
+  optimized: number | null;
 }
 
 export function SpendTrendChart({ data }: { data: TrendDatum[] }) {
@@ -76,9 +77,10 @@ export function SpendTrendChart({ data }: { data: TrendDatum[] }) {
           labelFormatter={(d) => `Day ${d}`}
           contentStyle={{ borderRadius: 8, border: '1px solid rgba(120,120,120,0.25)', fontSize: 13 }}
         />
-        <Line type="monotone" dataKey="budget" name="Budget pace" stroke="#94a3b8" strokeDasharray="4 4" dot={false} strokeWidth={2} />
-        <Line type="monotone" dataKey="projected" name="Projected" stroke="#ef4444" strokeDasharray="2 3" dot={false} strokeWidth={2} />
-        <Line type="monotone" dataKey="actual" name="Actual" stroke="#10b981" dot={false} strokeWidth={2.5} />
+        <Line type="monotone" dataKey="budget" name="Budget" stroke="#94a3b8" strokeDasharray="4 4" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="projected" name="If nothing changes" stroke="#ef4444" strokeDasharray="2 3" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="optimized" name="With tokenTriage" stroke="#10b981" strokeDasharray="5 4" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="actual" name="Actual" stroke="#059669" dot={false} strokeWidth={2.5} />
       </LineChart>
     </ResponsiveContainer>
   );
