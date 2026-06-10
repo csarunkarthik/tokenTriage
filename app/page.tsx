@@ -78,9 +78,10 @@ export default function Home() {
             </div>
             <div className="mt-0.5 text-xs text-red-500/80">{pct(report.recoverablePct)} recoverable</div>
           </Card>
-          <Card>
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">Annualized</div>
-            <div className="mt-1 text-2xl font-semibold tabular-nums">{usd(report.recoverableTotal * 12)}</div>
+          <Card className="border-red-200 dark:border-red-900/60">
+            <div className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">Bleed / year</div>
+            <div className="mt-1 text-2xl font-semibold tabular-nums text-red-600 dark:text-red-400">{usd(report.recoverableTotal * 12)}</div>
+            <div className="mt-0.5 text-xs text-red-500/80">if nothing changes</div>
           </Card>
         </div>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
