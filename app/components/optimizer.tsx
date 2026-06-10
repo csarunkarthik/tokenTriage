@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { OptimizeResult, dollarsSaved, estimateTokens, EXAMPLE_PROMPT } from '@/lib/optimize';
-import { ALL_MODELS, PROVIDER_LABEL, PROVIDER_COLOR, PROVIDER_TEXT, TASK_LABEL, type Provider } from '@/lib/models';
+import { OptimizeResult, estimateTokens, EXAMPLE_PROMPT } from '@/lib/optimize';
+import { ALL_MODELS, PROVIDER_LABEL, TASK_LABEL, type Provider } from '@/lib/models';
 import { usd } from '@/lib/format';
 
 const VOLUMES = [1_000, 100_000, 1_000_000];
@@ -48,7 +48,9 @@ export function Optimizer() {
       if (!res.ok) {
         setError(data.error ?? 'Something went wrong. Please try again.');
       } else {
-        setResult(data as OptimizeResult);
+        const r = data as OptimizeResult;
+        setResult(r);
+        if (r.suggestedModel) setSelectedModelId(r.suggestedModel.id);
       }
     } catch {
       setError('Network error — could not reach the server.');
@@ -66,15 +68,15 @@ export function Optimizer() {
     } catch { /* blocked */ }
   };
 
-  const dollars = result
-    ? dollarsSaved(result.tokensSaved, selectedModel.inputPerMTok, calls)
-    : { perCall: 0, perMonth: 0, perYear: 0 };
-
   const afterPct = result && result.tokensBefore > 0
     ? Math.min(100, (result.tokensAfter / result.tokensBefore) * 100)
     : 100;
 
-  const netPerMonth = result ? Math.max(0, dollars.perMonth - result.optimizationCost) : 0;
+  // Per-call API costs using tokensBefore/After (includes follow-up penalty for expanded)
+  const costBefore = result ? result.tokensBefore * (selectedModel.inputPerMTok / 1_000_000) : 0;
+  const costAfter  = result ? result.tokensAfter  * (selectedModel.inputPerMTok / 1_000_000) : 0;
+  const savedPerCall = costBefore - costAfter;
+  const netPerMonth  = result ? Math.max(0, savedPerCall * calls - result.optimizationCost) : 0;
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
@@ -184,7 +186,7 @@ export function Optimizer() {
           <div className="mt-5 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">
-                Why this saves tokens
+                Reasoning
               </span>
               {result.taskType && (
                 <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
@@ -192,42 +194,79 @@ export function Optimizer() {
                 </span>
               )}
             </div>
+            {/* Prompt change reasoning */}
             <p className="mt-2 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
               {result.explanation}
             </p>
+            {/* Model choice reasoning */}
+            {result.modelReason && (
+              <p className="mt-2 border-t border-indigo-200/60 pt-2 text-sm leading-relaxed text-zinc-600 dark:border-indigo-800/40 dark:text-zinc-400">
+                <span className="font-medium text-indigo-700 dark:text-indigo-400">Model: </span>
+                {result.modelReason}
+              </p>
+            )}
           </div>
 
           {/* ── Model recommendations ─────────────────────────────── */}
-          {result.recommendations && (
+          {result.recommendations && result.suggestedModel && (
             <div className="mt-5">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Best model for this task
+              {/* Single suggested model */}
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 p-3 dark:border-emerald-700/60 dark:bg-emerald-950/30">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                      Suggested
+                    </span>
+                    <span className="text-[11px] text-zinc-400">{PROVIDER_LABEL[result.suggestedModel.provider]}</span>
+                    {result.suggestedModel.isReasoning && (
+                      <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                        thinking
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    {result.suggestedModel.name}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-zinc-400">input / output</div>
+                  <div className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
+                    ${result.suggestedModel.inputPerMTok} / ${result.suggestedModel.outputPerMTok}
+                    <span className="font-normal text-zinc-400"> /MTok</span>
+                  </div>
+                </div>
               </div>
-              <p className="mt-0.5 text-xs text-zinc-400">
-                Cheapest capable option per provider for <em>{TASK_LABEL[result.taskType]}</em>
-              </p>
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+
+              {/* Three equal alternatives — same style, horizontal */}
+              <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400 mb-1.5">
+                Compare by provider
+              </div>
+              <div className="grid grid-cols-3 gap-2">
                 {(['anthropic', 'openai', 'google'] as Provider[]).map((p) => {
                   const m = result.recommendations[p];
                   if (!m) return null;
+                  const isSuggested = m.id === result.suggestedModel?.id;
                   return (
                     <div
                       key={p}
-                      className={`rounded-xl border p-3 ${PROVIDER_COLOR[p]}`}
+                      className={`rounded-xl border p-3 ${isSuggested ? 'border-emerald-300 dark:border-emerald-700/60' : 'border-zinc-200 dark:border-zinc-800'} bg-white dark:bg-zinc-900`}
                     >
-                      <div className={`text-[11px] font-semibold uppercase tracking-wide ${PROVIDER_TEXT[p]}`}>
-                        {PROVIDER_LABEL[p]}
-                      </div>
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-100">{m.name}</span>
+                      <div className="text-[11px] font-medium text-zinc-400">{PROVIDER_LABEL[p]}</div>
+                      <div className="mt-0.5 flex items-center gap-1 flex-wrap">
+                        <span className="font-semibold text-sm text-zinc-800 dark:text-zinc-100">{m.name}</span>
                         {m.isReasoning && (
                           <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
                             thinking
                           </span>
                         )}
+                        {isSuggested && (
+                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                            ★ pick
+                          </span>
+                        )}
                       </div>
-                      <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                        ${m.inputPerMTok} / ${m.outputPerMTok} per MTok
+                      <div className="mt-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                        ${m.inputPerMTok} / ${m.outputPerMTok}
                       </div>
                     </div>
                   );
@@ -239,7 +278,7 @@ export function Optimizer() {
           {/* ── Dollar impact ─────────────────────────────────────── */}
           <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              {/* Model selector — all 10 models, grouped */}
+              {/* Model selector — all 10 models grouped by provider */}
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-zinc-500">Model</span>
                 <select
@@ -251,8 +290,7 @@ export function Optimizer() {
                     <optgroup key={p} label={PROVIDER_LABEL[p]}>
                       {ALL_MODELS.filter(m => m.provider === p).map(m => (
                         <option key={m.id} value={m.id}>
-                          {m.name} (${m.inputPerMTok}/MTok)
-                          {result.recommendations?.[p]?.id === m.id ? ' ★' : ''}
+                          {m.name} (${m.inputPerMTok}/MTok){result.suggestedModel?.id === m.id ? ' ★' : ''}
                         </option>
                       ))}
                     </optgroup>
@@ -265,16 +303,12 @@ export function Optimizer() {
                 <span className="text-zinc-500">Calls / mo</span>
                 <div className="flex gap-1">
                   {VOLUMES.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setCalls(v)}
+                    <button key={v} type="button" onClick={() => setCalls(v)}
                       className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                         calls === v
                           ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
                           : 'border border-zinc-200 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800'
-                      }`}
-                    >
+                      }`}>
                       {v >= 1_000_000 ? `${v / 1_000_000}M` : `${v / 1000}k`}
                     </button>
                   ))}
@@ -282,18 +316,18 @@ export function Optimizer() {
               </div>
             </div>
 
-            {/* 3-stat row — responsive */}
+            {/* Before / After / Net — responsive, numbers truncate on mobile */}
             <div className="mt-4 grid grid-cols-3 gap-2">
               <StatBox
-                label="Saved / call"
-                value={money(dollars.perCall)}
-                sub={`${compact(result.tokensSaved)} tokens`}
+                label="Before / call"
+                value={money(costBefore)}
+                sub={`${compact(result.tokensBefore)} tok`}
               />
               <StatBox
-                label="Opt. cost"
-                value={money(result.optimizationCost)}
-                sub="one-time"
-                muted
+                label="After / call"
+                value={money(costAfter)}
+                sub={`${compact(result.tokensAfter)} tok`}
+                accent
               />
               <StatBox
                 label="Net / month"
@@ -304,9 +338,8 @@ export function Optimizer() {
             </div>
 
             <p className="mt-2 text-xs text-zinc-400">
-              Net = (saved/call × {compact(calls)} calls) − optimization cost.
-              {result.mode === 'expanded' ? ' Includes avoided follow-up tokens.' : ''}
-              {' '}★ = recommended model for this task.
+              Net = (before − after) × {compact(calls)} calls − opt. cost ({money(result.optimizationCost)}).
+              {result.mode === 'expanded' ? ' Before includes ~follow-up tokens.' : ''}
             </p>
           </div>
         </>

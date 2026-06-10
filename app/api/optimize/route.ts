@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk';
 import { NextRequest } from 'next/server';
 import { estimateTokens } from '@/lib/optimize';
-import { recommendedModels, type TaskType } from '@/lib/models';
+import { recommendedModels, suggestModel, type TaskType } from '@/lib/models';
 
 // Approximate token count of the SYSTEM prompt below.
 const SYSTEM_TOKENS = 380;
@@ -37,7 +37,8 @@ Respond with valid JSON only — no markdown fences:
   "mode": "compressed" | "expanded",
   "roundsSaved": <integer 0–3, only meaningful when mode is "expanded">,
   "taskType": <one of: planning | coding | creative | analysis | extraction | summarization | qa | agentic>,
-  "reason": "<2-3 sentences: what specifically changed and why it reduces total tokens — be concrete about what was removed or added>"
+  "reason": "<2-3 sentences: what specifically changed and why it reduces total tokens — be concrete about what was removed or added>",
+  "modelReason": "<1 sentence: why this task type needs this tier of model — e.g. reasoning models for multi-step planning, fast cheap models for simple extraction>"
 }`;
 
 export async function POST(req: NextRequest) {
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
   let roundsSaved: number;
   let taskType: TaskType;
   let reason: string;
+  let modelReason: string;
   try {
     const parsed = JSON.parse(raw) as {
       optimized?: string;
@@ -81,12 +83,14 @@ export async function POST(req: NextRequest) {
       roundsSaved?: number;
       taskType?: string;
       reason?: string;
+      modelReason?: string;
     };
     optimized    = parsed.optimized ?? prompt;
     mode         = parsed.mode === 'expanded' ? 'expanded' : 'compressed';
     roundsSaved  = typeof parsed.roundsSaved === 'number' ? Math.max(0, Math.min(3, parsed.roundsSaved)) : 1;
     taskType     = (parsed.taskType as TaskType) ?? 'qa';
     reason       = parsed.reason ?? '';
+    modelReason  = parsed.modelReason ?? '';
   } catch {
     return Response.json({ error: 'Model returned an unreadable response. Please try again.' }, { status: 500 });
   }
@@ -112,10 +116,12 @@ export async function POST(req: NextRequest) {
     (groqInputTokens * GROQ_INPUT_PER_MTOK + groqOutputTokens * GROQ_OUTPUT_PER_MTOK) / 1_000_000;
 
   const recommendations = recommendedModels(taskType);
+  const suggested       = suggestModel(taskType);
 
   return Response.json({
     optimized,
     explanation: reason,
+    modelReason,
     mode,
     taskType,
     roundsSaved: mode === 'expanded' ? roundsSaved : undefined,
@@ -125,6 +131,7 @@ export async function POST(req: NextRequest) {
     tokensSaved,
     pctSaved,
     optimizationCost,
+    suggestedModel: suggested,
     recommendations,
   });
 }

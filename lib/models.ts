@@ -106,7 +106,7 @@ export const ALL_MODELS: ModelRec[] = [
   },
 ];
 
-// Pick the cheapest model that handles the given task type for each provider.
+// Per-provider: cheapest model that handles the task type.
 export function recommendedModels(taskType: TaskType): Record<Provider, ModelRec> {
   const pick = (p: Provider): ModelRec => {
     const fits = ALL_MODELS
@@ -115,4 +115,12 @@ export function recommendedModels(taskType: TaskType): Record<Provider, ModelRec
     return fits[0] ?? ALL_MODELS.filter(m => m.provider === p)[1];
   };
   return { anthropic: pick('anthropic'), openai: pick('openai'), google: pick('google') };
+}
+
+// Single best suggestion: cheapest capable model across ALL providers.
+export function suggestModel(taskType: TaskType): ModelRec {
+  const fits = ALL_MODELS
+    .filter(m => m.bestFor.includes(taskType))
+    .sort((a, b) => a.inputPerMTok - b.inputPerMTok);
+  return fits[0] ?? ALL_MODELS[0];
 }

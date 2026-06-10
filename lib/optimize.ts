@@ -6,6 +6,7 @@ export type { TaskType };
 export interface OptimizeResult {
   optimized: string;
   explanation: string;
+  modelReason: string;   // why this task type needs this tier of model
   mode: 'compressed' | 'expanded';
   taskType: TaskType;
   // tokensBefore for 'expanded' includes estimated follow-up tokens so
@@ -16,7 +17,8 @@ export interface OptimizeResult {
   tokensSaved: number;  // always >= 0
   pctSaved: number;     // always >= 0
   roundsSaved?: number;
-  optimizationCost: number;  // $ cost of the Groq call that generated this
+  optimizationCost: number;           // $ cost of the Groq call that generated this
+  suggestedModel: ModelRec;           // single best model across all providers
   recommendations: Record<'anthropic' | 'openai' | 'google', ModelRec>;
 }
 
