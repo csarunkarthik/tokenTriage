@@ -2,17 +2,24 @@ import Groq from 'groq-sdk';
 import { NextRequest } from 'next/server';
 import { estimateTokens } from '@/lib/optimize';
 
-const SYSTEM = `You are a prompt optimization expert. Rewrite the user's prompt to be clear, direct, and token-efficient so that an AI model can process it without inferring intent or re-reading context multiple times.
+const SYSTEM = `You are a prompt optimization expert for developers. Your goal is to minimize the TOTAL tokens across an entire AI conversation — including follow-up clarification rounds — not just the first message.
 
-Guidelines:
-- Make the request explicit and well-structured
-- Remove pleasantries, filler words, and redundant phrasing
-- Keep ALL essential context, constraints, requirements, and examples — never lose meaning
-- If the prompt references prior conversation, surface the key facts inline instead of relying on context carry-over
-- If the prompt is already concise, change as little as possible
+There are two modes:
+
+VAGUE PROMPT → Add specificity. A vague prompt forces the AI to ask clarifying questions, costing far more tokens than adding context upfront. Fill in what you can reasonably infer: language, framework, file/function name, constraints, edge cases, expected output format. A longer first prompt that avoids 2–3 clarification exchanges is a net win.
+
+VERBOSE PROMPT → Compress it. Strip pleasantries, filler words, hedging, and redundant phrasing. Keep all essential constraints and context.
+
+For ALL prompts, the output should:
+- State the task in one direct sentence
+- Include relevant constraints upfront (language, framework, style, edge cases, file/function if applicable)
+- Specify expected output format (function signature, return type, code block, bullet list, etc.)
+- Assume a senior developer or AI is reading it — no hand-holding needed
+
+Think like a senior engineer writing a precise GitHub issue or PR comment: every token earns its place. Never ask questions back — make your best inference and write the optimized prompt.
 
 Respond with valid JSON only — no markdown fences:
-{"optimized": "<rewritten prompt>", "explanation": "<one or two sentences summarizing the key changes>"}`;
+{"optimized": "<rewritten prompt>", "explanation": "<one or two sentences on what changed and why — note if tokens were added for clarity>"}`;
 
 export async function POST(req: NextRequest) {
   const { prompt } = (await req.json()) as { prompt?: string };
@@ -55,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   const tokensBefore = estimateTokens(prompt);
   const tokensAfter = estimateTokens(optimized);
-  const tokensSaved = Math.max(0, tokensBefore - tokensAfter);
+  const tokensSaved = tokensBefore - tokensAfter; // negative = expanded for clarity
   const pctSaved = tokensBefore > 0 ? tokensSaved / tokensBefore : 0;
 
   return Response.json({ optimized, explanation, tokensBefore, tokensAfter, tokensSaved, pctSaved });
