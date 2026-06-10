@@ -47,7 +47,7 @@ export function Kpi({
 }
 
 const STEPS = [
-  { n: 1, href: '/', label: 'The bleed' },
+  { n: 1, href: '/audit', label: 'The bleed' },
   { n: 2, href: '/solution', label: 'The fix' },
   { n: 3, href: '/guardrails', label: 'Guardrails' },
   { n: 4, href: '/results', label: 'The result' },

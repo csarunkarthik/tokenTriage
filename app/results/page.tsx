@@ -125,7 +125,7 @@ export default function Results() {
 
       <NavButtons
         back={{ href: '/guardrails', label: 'Back to guardrails' }}
-        next={{ href: '/', label: 'Start over' }}
+        next={{ href: '/audit', label: 'Start over' }}
       />
     </PageShell>
   );

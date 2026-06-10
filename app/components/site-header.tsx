@@ -13,7 +13,13 @@ export function SiteHeader() {
             href="/"
             className="rounded-full px-3 py-1.5 font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Walkthrough
+            Optimizer
+          </Link>
+          <Link
+            href="/audit"
+            className="rounded-full px-3 py-1.5 font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Case study
           </Link>
           <Link
             href="/dashboard"

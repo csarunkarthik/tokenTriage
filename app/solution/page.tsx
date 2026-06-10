@@ -124,7 +124,7 @@ export default function Solution() {
       </Card>
 
       <NavButtons
-        back={{ href: '/', label: 'Back to the bleed' }}
+        back={{ href: '/audit', label: 'Back to the audit' }}
         next={{ href: '/guardrails', label: 'Keep it from coming back' }}
       />
     </PageShell>
