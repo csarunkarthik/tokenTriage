@@ -1,6 +1,15 @@
 import Groq from 'groq-sdk';
 import { NextRequest } from 'next/server';
 import { estimateTokens } from '@/lib/optimize';
+import { recommendedModels, type TaskType } from '@/lib/models';
+
+// Approximate token count of the SYSTEM prompt below.
+const SYSTEM_TOKENS = 380;
+
+// Groq Llama 3.3 70B paid-tier pricing ($ per million tokens).
+// Free-tier users pay $0, but we show the cost for transparency.
+const GROQ_INPUT_PER_MTOK  = 0.59;
+const GROQ_OUTPUT_PER_MTOK = 0.79;
 
 const SYSTEM = `You are a prompt optimization expert for developers. Your goal is to minimize TOTAL tokens across an entire AI conversation — including follow-up clarification rounds — not just the first message.
 
@@ -20,12 +29,15 @@ Output rules for ALL prompts:
 - Assume a senior developer is reading — no hand-holding
 - Never ask questions back — make your best reasonable inference
 
+Also classify the task type and estimate follow-up rounds.
+
 Respond with valid JSON only — no markdown fences:
 {
   "optimized": "<rewritten prompt>",
   "mode": "compressed" | "expanded",
-  "roundsSaved": <integer 0–3, only meaningful when mode is "expanded" — estimate how many clarification follow-up rounds this avoids>,
-  "reason": "<one or two sentences explaining specifically why the new prompt reduces total tokens — what it avoids or removes>"
+  "roundsSaved": <integer 0–3, only meaningful when mode is "expanded">,
+  "taskType": <one of: planning | coding | creative | analysis | extraction | summarization | qa | agentic>,
+  "reason": "<2-3 sentences: what specifically changed and why it reduces total tokens — be concrete about what was removed or added>"
 }`;
 
 export async function POST(req: NextRequest) {
@@ -60,28 +72,30 @@ export async function POST(req: NextRequest) {
   let optimized: string;
   let mode: 'compressed' | 'expanded';
   let roundsSaved: number;
+  let taskType: TaskType;
   let reason: string;
   try {
     const parsed = JSON.parse(raw) as {
       optimized?: string;
       mode?: string;
       roundsSaved?: number;
+      taskType?: string;
       reason?: string;
     };
-    optimized = parsed.optimized ?? prompt;
-    mode = parsed.mode === 'expanded' ? 'expanded' : 'compressed';
-    roundsSaved = typeof parsed.roundsSaved === 'number' ? Math.max(0, Math.min(3, parsed.roundsSaved)) : 1;
-    reason = parsed.reason ?? '';
+    optimized    = parsed.optimized ?? prompt;
+    mode         = parsed.mode === 'expanded' ? 'expanded' : 'compressed';
+    roundsSaved  = typeof parsed.roundsSaved === 'number' ? Math.max(0, Math.min(3, parsed.roundsSaved)) : 1;
+    taskType     = (parsed.taskType as TaskType) ?? 'qa';
+    reason       = parsed.reason ?? '';
   } catch {
     return Response.json({ error: 'Model returned an unreadable response. Please try again.' }, { status: 500 });
   }
 
   const rawTokensBefore = estimateTokens(prompt);
-  const tokensAfter = estimateTokens(optimized);
+  const tokensAfter     = estimateTokens(optimized);
 
-  // For expanded prompts, the effective "before" cost includes the follow-up
-  // exchanges that a vague prompt would force. Each clarification round ≈ 150 tokens.
-  // This ensures tokensBefore is always ≥ tokensAfter so the comparison is meaningful.
+  // For expanded prompts, include estimated follow-up tokens in "before" so
+  // tokensBefore is always >= tokensAfter and savings are always positive.
   const AVG_CLARIFICATION = 150;
   const tokensBefore =
     mode === 'expanded'
@@ -89,17 +103,28 @@ export async function POST(req: NextRequest) {
       : rawTokensBefore;
 
   const tokensSaved = Math.max(0, tokensBefore - tokensAfter);
-  const pctSaved = tokensBefore > 0 ? tokensSaved / tokensBefore : 0;
+  const pctSaved    = tokensBefore > 0 ? tokensSaved / tokensBefore : 0;
+
+  // Cost of this Groq optimization call (at paid-tier rates).
+  const groqInputTokens  = SYSTEM_TOKENS + rawTokensBefore;
+  const groqOutputTokens = tokensAfter + 80; // optimized + JSON overhead
+  const optimizationCost =
+    (groqInputTokens * GROQ_INPUT_PER_MTOK + groqOutputTokens * GROQ_OUTPUT_PER_MTOK) / 1_000_000;
+
+  const recommendations = recommendedModels(taskType);
 
   return Response.json({
     optimized,
     explanation: reason,
     mode,
+    taskType,
     roundsSaved: mode === 'expanded' ? roundsSaved : undefined,
     rawTokensBefore,
     tokensBefore,
     tokensAfter,
     tokensSaved,
     pctSaved,
+    optimizationCost,
+    recommendations,
   });
 }

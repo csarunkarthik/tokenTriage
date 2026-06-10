@@ -1,18 +1,23 @@
-import { ModelTier } from './types';
-import { PRICING } from './data';
+import type { TaskType } from './models';
+import type { ModelRec } from './models';
+
+export type { TaskType };
 
 export interface OptimizeResult {
   optimized: string;
   explanation: string;
   mode: 'compressed' | 'expanded';
-  // For 'expanded': tokensBefore includes estimated follow-up exchange tokens
-  // so the comparison is always original > optimized.
+  taskType: TaskType;
+  // tokensBefore for 'expanded' includes estimated follow-up tokens so
+  // it is always >= tokensAfter, making savings always positive.
   rawTokensBefore: number;
   tokensBefore: number;
   tokensAfter: number;
-  tokensSaved: number; // always ≥ 0
-  pctSaved: number;    // always ≥ 0
+  tokensSaved: number;  // always >= 0
+  pctSaved: number;     // always >= 0
   roundsSaved?: number;
+  optimizationCost: number;  // $ cost of the Groq call that generated this
+  recommendations: Record<'anthropic' | 'openai' | 'google', ModelRec>;
 }
 
 export function estimateTokens(text: string): number {
@@ -21,9 +26,11 @@ export function estimateTokens(text: string): number {
   return Math.max(1, Math.round(t.length / 3.7));
 }
 
-export function dollarsSaved(tokensSaved: number, model: ModelTier, callsPerMonth: number) {
-  const perTok = PRICING[model].inputPerTok;
-  const perCall = tokensSaved * perTok;
+// tokensSaved: token count saved per call
+// inputPerMTok: model's input price in $ per million tokens
+// callsPerMonth: how many times this prompt is called per month
+export function dollarsSaved(tokensSaved: number, inputPerMTok: number, callsPerMonth: number) {
+  const perCall = tokensSaved * (inputPerMTok / 1_000_000);
   const perMonth = perCall * callsPerMonth;
   return { perCall, perMonth, perYear: perMonth * 12 };
 }
