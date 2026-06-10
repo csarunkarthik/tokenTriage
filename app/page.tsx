@@ -256,15 +256,6 @@ export default function Bleed() {
       </Card>
 
       <NavButtons next={{ href: '/solution', label: 'See how we stop the bleed' }} />
-
-      <footer className="mt-10 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400 dark:text-zinc-600">
-        <span className="rounded-full border border-zinc-200 px-2.5 py-1 dark:border-zinc-800">
-          Category · sub-agent &amp; dashboard
-        </span>
-        <span className="rounded-full border border-zinc-200 px-2.5 py-1 dark:border-zinc-800">
-          Track 04 · Optimize the Platform
-        </span>
-      </footer>
     </PageShell>
   );
 }
