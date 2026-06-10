@@ -1,0 +1,77 @@
+'use client';
+
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { usd } from '@/lib/format';
+
+export interface TeamSpendDatum {
+  name: string;
+  recoverable: number;
+  remaining: number;
+}
+
+export interface LeakDatum {
+  name: string;
+  value: number;
+  color: string;
+}
+
+const axisStyle = { fontSize: 12, fill: 'currentColor' };
+
+function compactUsd(n: number): string {
+  if (n >= 1000) return `$${Math.round(n / 1000)}k`;
+  return `$${Math.round(n)}`;
+}
+
+export function TeamSpendChart({ data }: { data: TeamSpendDatum[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+        <XAxis dataKey="name" tickLine={false} axisLine={false} style={axisStyle} />
+        <YAxis tickFormatter={compactUsd} tickLine={false} axisLine={false} width={48} style={axisStyle} />
+        <Tooltip
+          cursor={{ fill: 'rgba(120,120,120,0.08)' }}
+          formatter={(value, name) => [usd(Number(value)), name === 'recoverable' ? 'Recoverable' : 'Remaining']}
+          contentStyle={{ borderRadius: 8, border: '1px solid rgba(120,120,120,0.25)', fontSize: 13 }}
+        />
+        <Bar dataKey="remaining" stackId="spend" fill="#94a3b8" radius={[0, 0, 0, 0]} />
+        <Bar dataKey="recoverable" stackId="spend" fill="#10b981" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function LeakDonut({ data }: { data: LeakDatum[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={70}
+          outerRadius={110}
+          paddingAngle={2}
+          strokeWidth={0}
+        >
+          {data.map((d) => (
+            <Cell key={d.name} fill={d.color} />
+          ))}
+        </Pie>
+        <Tooltip
+          formatter={(value, name) => [usd(Number(value)), name]}
+          contentStyle={{ borderRadius: 8, border: '1px solid rgba(120,120,120,0.25)', fontSize: 13 }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
