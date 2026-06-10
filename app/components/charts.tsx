@@ -50,6 +50,30 @@ export function TeamSpendChart({ data }: { data: TeamSpendDatum[] }) {
   );
 }
 
+export interface BeforeAfterDatum {
+  name: string;
+  before: number;
+  after: number;
+}
+
+export function BeforeAfterChart({ data }: { data: BeforeAfterDatum[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+        <XAxis dataKey="name" tickLine={false} axisLine={false} style={axisStyle} />
+        <YAxis tickFormatter={compactUsd} tickLine={false} axisLine={false} width={48} style={axisStyle} />
+        <Tooltip
+          cursor={{ fill: 'rgba(120,120,120,0.08)' }}
+          formatter={(value, name) => [usd(Number(value)), name === 'before' ? 'Before' : 'After']}
+          contentStyle={{ borderRadius: 8, border: '1px solid rgba(120,120,120,0.25)', fontSize: 13 }}
+        />
+        <Bar dataKey="before" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="after" fill="#10b981" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 export function LeakDonut({ data }: { data: LeakDatum[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>

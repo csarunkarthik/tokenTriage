@@ -8,19 +8,20 @@ export const PRICING: Record<ModelTier, TierPricing> = {
   'opus-4.8':   { inputPerTok: 5 / M, outputPerTok: 25 / M },
 };
 
+// Walmart Global Tech (formerly Walmart Labs) — GenAI spend across product teams.
 // Realized: orgGross ~$186k, recoverable ~44%
-// Platform ~$52k, Support-AI ~$38k, Data-Eng ~$34k, Growth ~$28k, Mobile ~$28k, Docs-AI ~$6k
+// Dev-Experience ~$52k, Customer Care ~$38k, Element ~$34k, Walmart Connect ~$28k, Sparky ~$28k, Associate ~$6k
 export const org: Org = {
-  name: 'Acme Corp',
+  name: 'Walmart Global Tech',
   periodDays: 30,
-  engineers: 400,
+  engineers: 300,
   pricing: PRICING,
   teams: [
-    // Platform: model-mismatch + prompt-waste ~$52k
+    // Developer Experience: agentic coding assistant — model-mismatch + prompt-waste ~$52k
     {
-      id: 'platform',
-      name: 'Platform',
-      primaryWorkflow: 'Coding assistant (Claude Code)',
+      id: 'dev-experience',
+      name: 'Developer Experience',
+      primaryWorkflow: 'Agentic coding assistant for WGT engineers',
       querySource: 'claude_code',
       engineers: 90,
       tokensPerTask: 48_000,
@@ -42,11 +43,11 @@ export const org: Org = {
         },
       ],
     },
-    // Support-AI: cache-miss poster child ~$38k
+    // Customer Care: cache-miss poster child ~$38k
     {
-      id: 'support-ai',
-      name: 'Support-AI',
-      primaryWorkflow: 'RAG support bot',
+      id: 'customer-care',
+      name: 'Customer Care',
+      primaryWorkflow: 'RAG support assistant (orders, returns, policy)',
       querySource: 'sdk',
       engineers: 60,
       tokensPerTask: 22_000,
@@ -68,11 +69,11 @@ export const org: Org = {
         },
       ],
     },
-    // Data-Eng: model-mismatch, batch-heavy, Sonnet-heavy ~$34k
+    // Element ML Platform: model-mismatch, batch-heavy catalog enrichment ~$34k
     {
-      id: 'data-eng',
-      name: 'Data-Eng',
-      primaryWorkflow: 'Batch data pipeline enrichment',
+      id: 'element',
+      name: 'Element ML Platform',
+      primaryWorkflow: 'Batch catalog & product-data enrichment',
       querySource: 'batch',
       engineers: 55,
       tokensPerTask: 32_000,
@@ -94,11 +95,11 @@ export const org: Org = {
         },
       ],
     },
-    // Growth: prompt-waste + model-mismatch, mixed Sonnet/Haiku ~$28k
+    // Walmart Connect: prompt-waste + model-mismatch, ad creative ~$28k
     {
-      id: 'growth',
-      name: 'Growth',
-      primaryWorkflow: 'Marketing copy & A/B generation',
+      id: 'walmart-connect',
+      name: 'Walmart Connect',
+      primaryWorkflow: 'Ad copy & creative A/B generation',
       querySource: 'sdk',
       engineers: 45,
       tokensPerTask: 40_000,
@@ -120,12 +121,12 @@ export const org: Org = {
         },
       ],
     },
-    // Mobile: cache-miss + prompt-waste, smaller Opus footprint ~$28k
+    // Sparky: customer shopping assistant — cache-miss + prompt-waste ~$28k
     {
-      id: 'mobile',
-      name: 'Mobile',
-      primaryWorkflow: 'In-app coding assistant',
-      querySource: 'claude_code',
+      id: 'sparky',
+      name: 'Sparky (Shopping Assistant)',
+      primaryWorkflow: 'In-app customer shopping assistant',
+      querySource: 'sdk',
       engineers: 40,
       tokensPerTask: 36_000,
       baselineTokensPerTask: 26_000,
@@ -146,11 +147,11 @@ export const org: Org = {
         },
       ],
     },
-    // Docs-AI: healthy team, no leaks ~$6k
+    // Associate Assistant (Me@Walmart): healthy team, no leaks ~$6k
     {
-      id: 'docs-ai',
-      name: 'Docs-AI',
-      primaryWorkflow: 'Documentation generation & search',
+      id: 'associate',
+      name: 'Associate Assistant',
+      primaryWorkflow: 'In-store associate knowledge assistant (Me@Walmart)',
       querySource: 'sdk',
       engineers: 10,
       tokensPerTask: 18_000,

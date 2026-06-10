@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TokenTriage",
-  description: "Find recoverable LLM token spend across your teams.",
+  title: "TokenTriage — Walmart Global Tech",
+  description: "Find and recover bleeding LLM token spend across your teams.",
 };
 
 export default function RootLayout({
