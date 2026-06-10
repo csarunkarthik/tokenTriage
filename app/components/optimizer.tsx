@@ -316,16 +316,16 @@ export function Optimizer() {
               </div>
             </div>
 
-            {/* Before / After / Net — responsive, numbers truncate on mobile */}
+            {/* Before / After / Net — cost shown per 1k calls for legibility */}
             <div className="mt-4 grid grid-cols-3 gap-2">
               <StatBox
-                label="Before / call"
-                value={money(costBefore)}
+                label="Before / 1k"
+                value={money(costBefore * 1000)}
                 sub={`${compact(result.tokensBefore)} tok`}
               />
               <StatBox
-                label="After / call"
-                value={money(costAfter)}
+                label="After / 1k"
+                value={money(costAfter * 1000)}
                 sub={`${compact(result.tokensAfter)} tok`}
                 accent
               />
@@ -338,7 +338,7 @@ export function Optimizer() {
             </div>
 
             <p className="mt-2 text-xs text-zinc-400">
-              Net = (before − after) × {compact(calls)} calls − opt. cost ({money(result.optimizationCost)}).
+              Before/After shown per 1,000 calls. Net = (before − after) × {compact(calls)} calls − opt. cost ({money(result.optimizationCost)}).
               {result.mode === 'expanded' ? ' Before includes ~follow-up tokens.' : ''}
             </p>
           </div>
