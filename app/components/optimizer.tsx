@@ -66,12 +66,9 @@ export function Optimizer() {
     }
   };
 
-  const expanded = result ? result.tokensSaved < 0 : false;
-  const dollars = result && !expanded
-    ? dollarsSaved(result.tokensSaved, model, calls)
-    : { perCall: 0, perMonth: 0, perYear: 0 };
-
-  const beforePct = result && result.tokensBefore > 0
+  const expanded = result?.mode === 'expanded';
+  const dollars = result ? dollarsSaved(result.tokensSaved, model, calls) : { perCall: 0, perMonth: 0, perYear: 0 };
+  const afterPct = result && result.tokensBefore > 0
     ? Math.min(100, (result.tokensAfter / result.tokensBefore) * 100)
     : 100;
 
@@ -157,55 +154,41 @@ export function Optimizer() {
         </button>
       </div>
 
-      {/* Token bar — only after a result */}
+      {/* Token impact — only after a result */}
       {result && (
         <div className="mt-5">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">{expanded ? 'Expanded for clarity' : 'Token reduction'}</span>
+            <span className="font-medium">Token impact</span>
             <span className="tabular-nums">
               {result.tokensBefore} →{' '}
-              <span className={`font-semibold ${expanded ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                {result.tokensAfter}
-              </span>{' '}
-              <span className="text-zinc-500">
-                ({expanded ? '+' : '−'}{Math.abs(result.tokensSaved)},{' '}
-                {expanded ? '+' : '−'}{Math.abs(Math.round(result.pctSaved * 100))}%)
-              </span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{result.tokensAfter}</span>{' '}
+              <span className="text-zinc-500">(−{result.tokensSaved}, −{Math.round(result.pctSaved * 100)}%)</span>
             </span>
           </div>
-          <div className="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-            {expanded ? (
-              <>
-                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${(result.tokensBefore / result.tokensAfter) * 100}%` }} />
-                <div className="h-full bg-amber-400/80 transition-all" style={{ width: `${((result.tokensAfter - result.tokensBefore) / result.tokensAfter) * 100}%` }} />
-              </>
-            ) : (
-              <>
-                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${beforePct}%` }} />
-                <div className="h-full bg-red-400/70 transition-all" style={{ width: `${100 - beforePct}%` }} />
-              </>
-            )}
-          </div>
-          <div className="mt-1.5 flex items-center gap-5 text-xs text-zinc-500">
-            {expanded ? (
-              <>
-                <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500" /> original</span>
-                <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-400/80" /> added for clarity</span>
-              </>
-            ) : (
-              <>
-                <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500" /> kept</span>
-                <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-400/70" /> trimmed</span>
-              </>
-            )}
-          </div>
-          {expanded && (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
-              Adding specificity upfront prevents 2–3× more tokens in follow-up clarification exchanges.
+
+          {/* For expanded prompts, show what makes up the "before" cost */}
+          {expanded && result.roundsSaved && (
+            <p className="mt-1 text-xs text-zinc-400">
+              Before = {result.rawTokensBefore} prompt tokens + ~{result.roundsSaved * 150} from{' '}
+              {result.roundsSaved} expected follow-up{result.roundsSaved > 1 ? 's' : ''} the vague prompt would trigger.
             </p>
           )}
+
+          <div className="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${afterPct}%` }} />
+            <div className="h-full bg-red-400/70 transition-all" style={{ width: `${100 - afterPct}%` }} />
+          </div>
+          <div className="mt-1.5 flex items-center gap-5 text-xs text-zinc-500">
+            <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500" /> optimized</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-400/70" /> eliminated</span>
+          </div>
+
+          {/* Why this saves tokens */}
           {result.explanation && (
-            <p className="mt-2 text-xs text-zinc-500 italic">{result.explanation}</p>
+            <p className="mt-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <span className="font-medium text-zinc-800 dark:text-zinc-200">Why this saves tokens: </span>
+              {result.explanation}
+            </p>
           )}
         </div>
       )}
@@ -252,11 +235,9 @@ export function Optimizer() {
           <Stat label="Saved / year" value={result ? money(dollars.perYear) : '—'} accent />
         </div>
         <p className="mt-2 text-xs text-zinc-400">
-          {result && !expanded
-            ? `${result.tokensSaved} input tokens saved per call × ${calls.toLocaleString()} calls, at ${MODELS.find((m) => m.v === model)?.rate}.`
-            : result && expanded
-              ? `Prompt was expanded by ${Math.abs(result.tokensSaved)} tokens for clarity. Savings come from avoiding follow-up exchanges, which are harder to quantify per-call.`
-              : 'Optimize a prompt to see the dollar impact at scale.'}
+          {result
+            ? `${result.tokensSaved} tokens saved per call × ${calls.toLocaleString()} calls, at ${MODELS.find((m) => m.v === model)?.rate}.${expanded ? ' Includes follow-up avoidance.' : ''}`
+            : 'Optimize a prompt to see the dollar impact at scale.'}
         </p>
       </div>
     </div>

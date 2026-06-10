@@ -4,10 +4,15 @@ import { PRICING } from './data';
 export interface OptimizeResult {
   optimized: string;
   explanation: string;
+  mode: 'compressed' | 'expanded';
+  // For 'expanded': tokensBefore includes estimated follow-up exchange tokens
+  // so the comparison is always original > optimized.
+  rawTokensBefore: number;
   tokensBefore: number;
   tokensAfter: number;
-  tokensSaved: number;
-  pctSaved: number;
+  tokensSaved: number; // always ≥ 0
+  pctSaved: number;    // always ≥ 0
+  roundsSaved?: number;
 }
 
 export function estimateTokens(text: string): number {

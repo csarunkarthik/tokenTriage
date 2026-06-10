@@ -2,24 +2,31 @@ import Groq from 'groq-sdk';
 import { NextRequest } from 'next/server';
 import { estimateTokens } from '@/lib/optimize';
 
-const SYSTEM = `You are a prompt optimization expert for developers. Your goal is to minimize the TOTAL tokens across an entire AI conversation — including follow-up clarification rounds — not just the first message.
+const SYSTEM = `You are a prompt optimization expert for developers. Your goal is to minimize TOTAL tokens across an entire AI conversation — including follow-up clarification rounds — not just the first message.
 
-There are two modes:
+There are two modes. Choose the right one:
 
-VAGUE PROMPT → Add specificity. A vague prompt forces the AI to ask clarifying questions, costing far more tokens than adding context upfront. Fill in what you can reasonably infer: language, framework, file/function name, constraints, edge cases, expected output format. A longer first prompt that avoids 2–3 clarification exchanges is a net win.
+MODE: "compressed"
+Use when the prompt is verbose, filled with filler words, pleasantries, or redundant phrasing.
+Action: Strip the noise. Keep all essential constraints, context, and requirements. Be direct.
 
-VERBOSE PROMPT → Compress it. Strip pleasantries, filler words, hedging, and redundant phrasing. Keep all essential constraints and context.
+MODE: "expanded"
+Use when the prompt is vague or underspecified — the AI would need follow-up questions to complete the task.
+Action: Add the missing specifics: language, framework, file/function name, constraints, edge cases, expected output format. A longer upfront prompt that avoids 2–3 clarification exchanges saves far more tokens than it adds.
 
-For ALL prompts, the output should:
+Output rules for ALL prompts:
 - State the task in one direct sentence
-- Include relevant constraints upfront (language, framework, style, edge cases, file/function if applicable)
-- Specify expected output format (function signature, return type, code block, bullet list, etc.)
-- Assume a senior developer or AI is reading it — no hand-holding needed
-
-Think like a senior engineer writing a precise GitHub issue or PR comment: every token earns its place. Never ask questions back — make your best inference and write the optimized prompt.
+- Include constraints and output format upfront
+- Assume a senior developer is reading — no hand-holding
+- Never ask questions back — make your best reasonable inference
 
 Respond with valid JSON only — no markdown fences:
-{"optimized": "<rewritten prompt>", "explanation": "<one or two sentences on what changed and why — note if tokens were added for clarity>"}`;
+{
+  "optimized": "<rewritten prompt>",
+  "mode": "compressed" | "expanded",
+  "roundsSaved": <integer 0–3, only meaningful when mode is "expanded" — estimate how many clarification follow-up rounds this avoids>,
+  "reason": "<one or two sentences explaining specifically why the new prompt reduces total tokens — what it avoids or removes>"
+}`;
 
 export async function POST(req: NextRequest) {
   const { prompt } = (await req.json()) as { prompt?: string };
@@ -51,19 +58,48 @@ export async function POST(req: NextRequest) {
   const raw = completion.choices[0]?.message?.content ?? '';
 
   let optimized: string;
-  let explanation: string;
+  let mode: 'compressed' | 'expanded';
+  let roundsSaved: number;
+  let reason: string;
   try {
-    const parsed = JSON.parse(raw) as { optimized?: string; explanation?: string };
+    const parsed = JSON.parse(raw) as {
+      optimized?: string;
+      mode?: string;
+      roundsSaved?: number;
+      reason?: string;
+    };
     optimized = parsed.optimized ?? prompt;
-    explanation = parsed.explanation ?? '';
+    mode = parsed.mode === 'expanded' ? 'expanded' : 'compressed';
+    roundsSaved = typeof parsed.roundsSaved === 'number' ? Math.max(0, Math.min(3, parsed.roundsSaved)) : 1;
+    reason = parsed.reason ?? '';
   } catch {
     return Response.json({ error: 'Model returned an unreadable response. Please try again.' }, { status: 500 });
   }
 
-  const tokensBefore = estimateTokens(prompt);
+  const rawTokensBefore = estimateTokens(prompt);
   const tokensAfter = estimateTokens(optimized);
-  const tokensSaved = tokensBefore - tokensAfter; // negative = expanded for clarity
+
+  // For expanded prompts, the effective "before" cost includes the follow-up
+  // exchanges that a vague prompt would force. Each clarification round ≈ 150 tokens.
+  // This ensures tokensBefore is always ≥ tokensAfter so the comparison is meaningful.
+  const AVG_CLARIFICATION = 150;
+  const tokensBefore =
+    mode === 'expanded'
+      ? rawTokensBefore + roundsSaved * AVG_CLARIFICATION
+      : rawTokensBefore;
+
+  const tokensSaved = Math.max(0, tokensBefore - tokensAfter);
   const pctSaved = tokensBefore > 0 ? tokensSaved / tokensBefore : 0;
 
-  return Response.json({ optimized, explanation, tokensBefore, tokensAfter, tokensSaved, pctSaved });
+  return Response.json({
+    optimized,
+    explanation: reason,
+    mode,
+    roundsSaved: mode === 'expanded' ? roundsSaved : undefined,
+    rawTokensBefore,
+    tokensBefore,
+    tokensAfter,
+    tokensSaved,
+    pctSaved,
+  });
 }
