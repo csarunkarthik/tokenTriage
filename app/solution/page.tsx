@@ -29,9 +29,9 @@ export default function Solution() {
         <Eyebrow>The fix · de-duplicated, applied in order</Eyebrow>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight">How TokenTriage stops the bleed</h1>
         <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          Three layered fixes, each mapped to a leak and applied in sequence —{' '}
-          <span className="font-medium">cache → route → compress</span> — so savings never double-count.
-          A batch sweep then captures the rest of the async workloads.
+          Four fixes, applied in sequence —{' '}
+          <span className="font-medium">cache → route → compress</span>, then a batch sweep for async
+          workloads — so savings never double-count.
         </p>
       </header>
 
@@ -90,7 +90,7 @@ export default function Solution() {
         <Card className="border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/60 dark:bg-emerald-950/20">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-base font-bold text-white">
-              +
+              4
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-semibold">Batch API sweep</h3>
@@ -100,7 +100,7 @@ export default function Solution() {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">Bonus</div>
+              <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">Recovers</div>
               <div className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                 {usd(report.batchRecovery)}
               </div>
@@ -115,7 +115,7 @@ export default function Solution() {
         <div>
           <div className="text-sm font-medium text-zinc-500">Total addressable, per month</div>
           <div className="text-xs text-zinc-400">
-            {pct(report.recoverablePct)} of gross from the three fixes, plus the batch sweep
+            {pct(report.recoverablePct)} of gross from the first three fixes, plus the batch sweep
           </div>
         </div>
         <div className="text-3xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
