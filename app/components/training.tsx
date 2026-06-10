@@ -108,6 +108,9 @@ export function TrainingExplorer() {
               <p className="mt-1.5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{m.lesson}</p>
 
               <div className="mt-4 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800/50">
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Sample question
+                </div>
                 <div className="text-sm font-medium">{m.question}</div>
                 <div className="mt-2 space-y-1.5">
                   {m.options.map((opt, i) => {

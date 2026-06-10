@@ -56,8 +56,8 @@ export default function Guardrails() {
             Earn your limit — interactive
           </h2>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            To raise your cap, pass short modules on prompting, caching, and routing — each with a real mock
-            question. Answer them below to unlock the tiers live.
+            To raise your cap, pass short modules on prompting, caching, and routing. The questions below are{' '}
+            <span className="font-medium">illustrative samples</span> — answer them to unlock the tiers live.
           </p>
         </div>
         <TrainingExplorer />

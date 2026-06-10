@@ -4,6 +4,8 @@ import {
   Bar,
   BarChart,
   Cell,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -46,6 +48,38 @@ export function TeamSpendChart({ data }: { data: TeamSpendDatum[] }) {
         <Bar dataKey="remaining" stackId="spend" fill="#94a3b8" radius={[0, 0, 0, 0]} />
         <Bar dataKey="recoverable" stackId="spend" fill="#10b981" radius={[4, 4, 0, 0]} />
       </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+export interface TrendDatum {
+  day: number;
+  budget: number;
+  actual: number | null;
+  projected: number | null;
+}
+
+export function SpendTrendChart({ data }: { data: TrendDatum[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+        <XAxis
+          dataKey="day"
+          tickLine={false}
+          axisLine={false}
+          style={axisStyle}
+          tickFormatter={(d) => `D${d}`}
+        />
+        <YAxis tickFormatter={compactUsd} tickLine={false} axisLine={false} width={48} style={axisStyle} />
+        <Tooltip
+          formatter={(value, name) => [usd(Number(value)), String(name)]}
+          labelFormatter={(d) => `Day ${d}`}
+          contentStyle={{ borderRadius: 8, border: '1px solid rgba(120,120,120,0.25)', fontSize: 13 }}
+        />
+        <Line type="monotone" dataKey="budget" name="Budget pace" stroke="#94a3b8" strokeDasharray="4 4" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="projected" name="Projected" stroke="#ef4444" strokeDasharray="2 3" dot={false} strokeWidth={2} />
+        <Line type="monotone" dataKey="actual" name="Actual" stroke="#10b981" dot={false} strokeWidth={2.5} />
+      </LineChart>
     </ResponsiveContainer>
   );
 }

@@ -54,6 +54,37 @@ export default function Bleed() {
         </p>
       </header>
 
+      {/* How this works — orient the viewer before the deep-dive */}
+      <section className="mb-8 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">How this audit works</h2>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
+          {[
+            { n: 1, label: 'The bleed', desc: 'See where spend leaks today, and why.' },
+            { n: 2, label: 'The fix', desc: 'Targeted fixes — caching, routing, compression.' },
+            { n: 3, label: 'Guardrails', desc: 'Caps + training so it doesn’t come back.' },
+            { n: 4, label: 'The result', desc: 'The before/after, and model your own.' },
+          ].map((s, i) => (
+            <div key={s.n} className="flex items-start gap-2.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-white dark:text-zinc-900">
+                {s.n}
+              </span>
+              <div>
+                <div className="text-sm font-semibold">{s.label}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">{s.desc}</div>
+              </div>
+              {i < 3 && <span className="ml-auto hidden text-zinc-300 sm:inline dark:text-zinc-700">→</span>}
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+          Already running? The{' '}
+          <a href="/dashboard" className="font-medium text-emerald-600 dark:text-emerald-400">
+            live dashboard
+          </a>{' '}
+          monitors usage, budgets, and alerts in real time.
+        </p>
+      </section>
+
       {/* Headline numbers */}
       <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Card>

@@ -53,6 +53,16 @@ function promptWasteRecovery(slice: ModelSlice, team: Team, pricing: Record<Mode
   return (slice.usage.input + slice.usage.cacheCreation) * p.inputPerTok * wasteFraction;
 }
 
+export function spendByModel(org: Org): Record<ModelTier, number> {
+  const out: Record<ModelTier, number> = { 'haiku-4.5': 0, 'sonnet-4.6': 0, 'opus-4.8': 0 };
+  for (const team of org.teams) {
+    for (const slice of team.slices) {
+      out[slice.model] += sliceGross(slice, org.pricing);
+    }
+  }
+  return out;
+}
+
 export function buildSavingsReport(org: Org): SavingsReport {
   const { pricing, teams } = org;
 
