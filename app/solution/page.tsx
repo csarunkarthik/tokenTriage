@@ -1,6 +1,7 @@
 import { org } from '@/lib/data';
 import { buildSavingsReport } from '@/lib/savings';
 import { LeakType } from '@/lib/types';
+import Link from 'next/link';
 import { LEAK_COLOR, LEAK_FIX, LEAK_LABEL, pct, usd } from '@/lib/format';
 import { Card, Eyebrow, NavButtons, PageShell, Stepper } from '../components/ui';
 
@@ -41,7 +42,11 @@ export default function Solution() {
           const amount = report.byLeak[leak];
           const targetTeams = teamsByLeak(leak);
           return (
-            <Card key={leak}>
+            <Link
+              key={leak}
+              href={`/solution/${leak}`}
+              className="group block rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-900 dark:hover:bg-emerald-950/20"
+            >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base font-bold text-white"
@@ -65,6 +70,9 @@ export default function Solution() {
                       Biggest wins: {targetTeams.join(', ')}
                     </p>
                   )}
+                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-emerald-600 group-hover:gap-2 dark:text-emerald-400">
+                    View detailed approach →
+                  </span>
                 </div>
                 <div className="shrink-0 text-right">
                   <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">Recovers</div>
@@ -74,7 +82,7 @@ export default function Solution() {
                   <div className="text-xs text-zinc-400">/ mo</div>
                 </div>
               </div>
-            </Card>
+            </Link>
           );
         })}
 
@@ -117,7 +125,7 @@ export default function Solution() {
 
       <NavButtons
         back={{ href: '/', label: 'Back to the bleed' }}
-        next={{ href: '/results', label: 'See the result' }}
+        next={{ href: '/guardrails', label: 'Keep it from coming back' }}
       />
     </PageShell>
   );

@@ -49,10 +49,11 @@ export function Kpi({
 const STEPS = [
   { n: 1, href: '/', label: 'The bleed' },
   { n: 2, href: '/solution', label: 'The fix' },
-  { n: 3, href: '/results', label: 'The result' },
+  { n: 3, href: '/guardrails', label: 'Guardrails' },
+  { n: 4, href: '/results', label: 'The result' },
 ] as const;
 
-export function Stepper({ current }: { current: 1 | 2 | 3 }) {
+export function Stepper({ current }: { current: 1 | 2 | 3 | 4 }) {
   return (
     <nav className="mb-8 flex items-center gap-2 text-sm">
       {STEPS.map((s, i) => {

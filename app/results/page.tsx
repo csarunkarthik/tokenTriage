@@ -2,6 +2,7 @@ import { org } from '@/lib/data';
 import { buildSavingsReport } from '@/lib/savings';
 import { pct, usd } from '@/lib/format';
 import { BeforeAfterChart, type BeforeAfterDatum } from '../components/charts';
+import { SavingsExplorer } from '../components/savings-explorer';
 import { Card, CardHint, CardTitle, Eyebrow, Kpi, NavButtons, PageShell, Stepper } from '../components/ui';
 
 export default function Results() {
@@ -21,7 +22,7 @@ export default function Results() {
 
   return (
     <PageShell>
-      <Stepper current={3} />
+      <Stepper current={4} />
 
       <header className="mb-8">
         <Eyebrow>The result · after rollout</Eyebrow>
@@ -105,8 +106,25 @@ export default function Results() {
         </p>
       </Card>
 
+      {/* Interactive: model your own rollout */}
+      <Card className="mt-4">
+        <CardTitle>Model your own rollout</CardTitle>
+        <CardHint>Drag each fix’s adoption to see the projected spend update live.</CardHint>
+        <div className="mt-4">
+          <SavingsExplorer
+            inputs={{
+              gross: report.orgGross,
+              cacheMiss: report.byLeak['cache-miss'],
+              modelMismatch: report.byLeak['model-mismatch'],
+              promptWaste: report.byLeak['prompt-waste'],
+              batch: report.batchRecovery,
+            }}
+          />
+        </div>
+      </Card>
+
       <NavButtons
-        back={{ href: '/solution', label: 'Back to the fix' }}
+        back={{ href: '/guardrails', label: 'Back to guardrails' }}
         next={{ href: '/', label: 'Start over' }}
       />
     </PageShell>

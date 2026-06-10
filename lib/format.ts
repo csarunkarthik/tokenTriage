@@ -25,6 +25,10 @@ export const LEAK_LABEL: Record<LeakType, string> = {
   'model-mismatch': 'Model mismatch',
 };
 
+export function LeakTypeGuard(value: string): value is LeakType {
+  return value === 'prompt-waste' || value === 'cache-miss' || value === 'model-mismatch';
+}
+
 export const LEAK_COLOR: Record<LeakType, string> = {
   'prompt-waste': '#f59e0b', // amber
   'cache-miss': '#ef4444', // red

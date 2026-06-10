@@ -10,6 +10,7 @@ import {
   severityFromShare,
   usd,
 } from '@/lib/format';
+import Link from 'next/link';
 import { LeakDonut, TeamSpendChart, type LeakDatum, type TeamSpendDatum } from './components/charts';
 import { Card, CardHint, CardTitle, Eyebrow, NavButtons, PageShell, Stepper } from './components/ui';
 
@@ -81,7 +82,11 @@ export default function Bleed() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">Why it bleeds</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {leakOrder.map((leak) => (
-            <Card key={leak}>
+            <Link
+              key={leak}
+              href={`/solution/${leak}`}
+              className="group block rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-900 dark:hover:bg-emerald-950/20"
+            >
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: LEAK_COLOR[leak] }} />
@@ -92,7 +97,10 @@ export default function Bleed() {
                 </span>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{LEAK_WHY[leak]}</p>
-            </Card>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 group-hover:gap-2 dark:text-emerald-400">
+                See the fix →
+              </span>
+            </Link>
           ))}
         </div>
       </section>

@@ -81,52 +81,36 @@ export function buildSavingsReport(org: Org): SavingsReport {
       const gross = sliceGross(slice, pricing);
       teamGross += gross;
 
-      // De-dup ordering: cache -> routing (model-mismatch) -> compression (prompt-waste)
-      // Each on spend remaining after the prior
-
-      let remainingInputCost = (slice.usage.input) * pricing[slice.model].inputPerTok;
-      const outputCost = slice.usage.output * pricing[slice.model].outputPerTok;
-      const cacheReadCost = slice.usage.cacheRead * 0.1 * pricing[slice.model].inputPerTok;
-      const cacheCreationCost = slice.usage.cacheCreation * 1.25 * pricing[slice.model].inputPerTok;
-
+      // De-dup: fixes are applied in order (cache -> routing -> compression) and
+      // each later fix only acts on the spend the prior fixes left behind. We
+      // approximate that by scaling each raw recovery by the share of this
+      // slice's gross spend still remaining when the fix is applied.
       let sliceRecoverable = 0;
+      const remainingShare = () =>
+        gross > 0 ? Math.max(0, Math.min(1, (gross - sliceRecoverable) / gross)) : 1;
 
-      // Step 1: Cache-miss recovery
+      // Step 1: Cache-miss — re-creating cache that should be read-cached.
       if (team.leaks.includes('cache-miss')) {
         const cacheSaving = cacheMissRecovery(slice, pricing);
         sliceRecoverable += cacheSaving;
         teamLeakAmounts['cache-miss'] += cacheSaving;
-        // Reduce remaining: cache saving comes from cacheCreation becoming cacheRead
-        // Effective input cost reduction is proportional
-        remainingInputCost = Math.max(0, remainingInputCost - cacheSaving * 0);
-        // Note: cache savings are on cache costs, not raw input
-        // For de-dup: track total remaining slice spend after cache fix
       }
 
-      // Step 2: Model-mismatch recovery (on remaining spend)
+      // Step 2: Model-mismatch — over-tiered calls, on spend remaining after caching.
       if (team.leaks.includes('model-mismatch') && slice.downgradeTarget) {
-        // Scale mismatch recovery by fraction of spend remaining
-        const grossSliceSpend = gross;
-        const afterCacheSpend = grossSliceSpend - teamLeakAmounts['cache-miss'];
-        const scaleFactor = grossSliceSpend > 0 ? Math.min(1, afterCacheSpend / grossSliceSpend) : 1;
-        const rawMismatch = modelMismatchRecovery(slice, pricing);
-        const scaledMismatch = rawMismatch * scaleFactor;
+        const scaledMismatch = modelMismatchRecovery(slice, pricing) * remainingShare();
         sliceRecoverable += scaledMismatch;
         teamLeakAmounts['model-mismatch'] += scaledMismatch;
       }
 
-      // Step 3: Prompt-waste recovery (on spend remaining after cache+routing)
+      // Step 3: Prompt-waste — bloated context, on spend remaining after cache + routing.
       if (team.leaks.includes('prompt-waste')) {
-        const grossSliceSpend = gross;
-        const afterPrior = grossSliceSpend - teamLeakAmounts['cache-miss'] - teamLeakAmounts['model-mismatch'];
-        const scaleFactor = grossSliceSpend > 0 ? Math.min(1, afterPrior / grossSliceSpend) : 1;
-        const rawWaste = promptWasteRecovery(slice, team, pricing);
-        const scaledWaste = rawWaste * scaleFactor;
+        const scaledWaste = promptWasteRecovery(slice, team, pricing) * remainingShare();
         sliceRecoverable += scaledWaste;
         teamLeakAmounts['prompt-waste'] += scaledWaste;
       }
 
-      // Batch kicker (on post-fix slice spend)
+      // Batch kicker: eligible async share of the post-fix spend, at 50% off.
       const postFixSpend = gross - sliceRecoverable;
       totalBatchRecovery += team.batchEligibleShare * Math.max(0, postFixSpend) * 0.50;
     }
