@@ -72,6 +72,17 @@ export function Optimizer() {
     ? Math.min(100, (result.tokensAfter / result.tokensBefore) * 100)
     : 100;
 
+  // Attention ops scale as n² per round. For expanded prompts, count all rounds
+  // of the unoptimized conversation (context grows by ~150 tokens each round).
+  const totalAttnBefore = result
+    ? (result.mode === 'expanded' && result.roundsSaved
+        ? Array.from({ length: result.roundsSaved + 1 }, (_, i) =>
+            (result.rawTokensBefore + i * 150) ** 2
+          ).reduce((a, b) => a + b, 0)
+        : result.rawTokensBefore ** 2)
+    : 0;
+  const totalAttnAfter = result ? result.tokensAfter ** 2 : 0;
+
   // Per-call API costs using tokensBefore/After (includes follow-up penalty for expanded)
   const costBefore = result ? result.tokensBefore * (selectedModel.inputPerMTok / 1_000_000) : 0;
   const costAfter  = result ? result.tokensAfter  * (selectedModel.inputPerMTok / 1_000_000) : 0;
@@ -179,6 +190,29 @@ export function Optimizer() {
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-400/70" /> eliminated
               </span>
+            </div>
+
+            {/* Prompt size + attention ops */}
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-800/60">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Prompt size</div>
+                <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
+                  {compact(result.rawTokensBefore)} <span className="font-normal text-zinc-400">→</span>{' '}
+                  <span className="text-emerald-600 dark:text-emerald-400">{compact(result.tokensAfter)}</span>{' '}
+                  <span className="font-normal text-zinc-400">tokens</span>
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-800/60">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Attention ops{result.mode === 'expanded' && result.roundsSaved ? ` (${result.roundsSaved + 1} rounds)` : ''}
+                </div>
+                <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
+                  {compact(totalAttnBefore)} <span className="font-normal text-zinc-400">→</span>{' '}
+                  <span className="text-emerald-600 dark:text-emerald-400">{compact(totalAttnAfter)}</span>{' '}
+                  <span className="font-normal text-zinc-400">n²</span>
+                </div>
+                <div className="mt-0.5 text-[10px] text-zinc-400">compute scales quadratically</div>
+              </div>
             </div>
           </div>
 
