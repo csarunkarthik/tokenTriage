@@ -15,8 +15,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+        <Link href="/" className="font-semibold tracking-tight">
           tokenTriage
         </Link>
         <nav className="flex items-center gap-1 text-sm">

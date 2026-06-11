@@ -72,16 +72,13 @@ export function Optimizer() {
     ? Math.min(100, (result.tokensAfter / result.tokensBefore) * 100)
     : 100;
 
-  // Attention ops scale as n² per round. For expanded prompts, count all rounds
-  // of the unoptimized conversation (context grows by ~150 tokens each round).
-  const totalAttnBefore = result
-    ? (result.mode === 'expanded' && result.roundsSaved
-        ? Array.from({ length: result.roundsSaved + 1 }, (_, i) =>
-            (result.rawTokensBefore + i * 150) ** 2
-          ).reduce((a, b) => a + b, 0)
-        : result.rawTokensBefore ** 2)
-    : 0;
-  const totalAttnAfter = result ? result.tokensAfter ** 2 : 0;
+  // Attention ops scale as n². Use tokensBefore (which already bakes in follow-up
+  // penalty for expanded prompts) so the factor stays grounded, not inflated by
+  // summing rounds separately.
+  const totalAttnBefore = result ? result.tokensBefore ** 2 : 0;
+  const totalAttnAfter  = result ? result.tokensAfter  ** 2 : 0;
+  // Improvement factor: how many times fewer ops after optimisation.
+  const attnFactor = result && totalAttnAfter > 0 ? totalAttnBefore / totalAttnAfter : 1;
 
   // Per-call API costs using tokensBefore/After (includes follow-up penalty for expanded)
   const costBefore = result ? result.tokensBefore * (selectedModel.inputPerMTok / 1_000_000) : 0;
@@ -160,14 +157,14 @@ export function Optimizer() {
           {/* ── Token impact bar ──────────────────────────────────── */}
           <div className="mt-5">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
-              <span className="font-medium">Token impact</span>
+              <span className="font-medium">Compute impact</span>
               <span className="whitespace-nowrap tabular-nums text-xs sm:text-sm">
-                {compact(result.tokensBefore)} →{' '}
+                {compact(totalAttnBefore)} →{' '}
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {compact(result.tokensAfter)}
+                  {compact(totalAttnAfter)}
                 </span>{' '}
                 <span className="text-zinc-500">
-                  (−{compact(result.tokensSaved)}, −{Math.round(result.pctSaved * 100)}%)
+                  ops ({attnFactor >= 1.05 ? `${attnFactor.toFixed(1)}× fewer` : 'similar'})
                 </span>
               </span>
             </div>
@@ -203,15 +200,14 @@ export function Optimizer() {
                 </div>
               </div>
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-800/60">
-                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                  Attention ops{result.mode === 'expanded' && result.roundsSaved ? ` (${result.roundsSaved + 1} rounds)` : ''}
-                </div>
+                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Attention ops (n²)</div>
                 <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
-                  {compact(totalAttnBefore)} <span className="font-normal text-zinc-400">→</span>{' '}
-                  <span className="text-emerald-600 dark:text-emerald-400">{compact(totalAttnAfter)}</span>{' '}
-                  <span className="font-normal text-zinc-400">n²</span>
+                  {attnFactor >= 1.05
+                    ? <span className="text-emerald-600 dark:text-emerald-400">{attnFactor.toFixed(1)}×</span>
+                    : <span className="text-zinc-400">~1×</span>}{' '}
+                  <span className="font-normal text-zinc-400">fewer ops</span>
                 </div>
-                <div className="mt-0.5 text-[10px] text-zinc-400">compute scales quadratically</div>
+                <div className="mt-0.5 text-[10px] text-zinc-400">{compact(totalAttnBefore)} → {compact(totalAttnAfter)}</div>
               </div>
             </div>
           </div>
