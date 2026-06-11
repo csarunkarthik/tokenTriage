@@ -157,14 +157,14 @@ export function Optimizer() {
           {/* ── Token impact bar ──────────────────────────────────── */}
           <div className="mt-5">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
-              <span className="font-medium">Compute impact</span>
+              <span className="font-medium">Token impact</span>
               <span className="whitespace-nowrap tabular-nums text-xs sm:text-sm">
-                {compact(totalAttnBefore)} →{' '}
+                {compact(result.rawTokensBefore)} →{' '}
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {compact(totalAttnAfter)}
+                  {compact(result.tokensAfter)}
                 </span>{' '}
                 <span className="text-zinc-500">
-                  ops ({attnFactor >= 1.05 ? `${attnFactor.toFixed(1)}× fewer` : 'similar'})
+                  ({attnFactor >= 1.05 ? `${attnFactor.toFixed(1)}× fewer thinking tokens` : 'similar compute'})
                 </span>
               </span>
             </div>
@@ -200,7 +200,7 @@ export function Optimizer() {
                 </div>
               </div>
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 dark:border-zinc-700 dark:bg-zinc-800/60">
-                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Attention ops (n²)</div>
+                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Thinking tokens</div>
                 <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
                   {attnFactor >= 1.05
                     ? <span className="text-emerald-600 dark:text-emerald-400">{attnFactor.toFixed(1)}×</span>
@@ -305,10 +305,11 @@ export function Optimizer() {
             </div>
           )}
 
-          {/* ── Dollar impact ─────────────────────────────────────── */}
+          {/* ── Cost breakdown ────────────────────────────────────── */}
           <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
+
+            {/* Controls */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              {/* Model selector — all 10 models grouped by provider */}
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-zinc-500">Model</span>
                 <select
@@ -327,8 +328,6 @@ export function Optimizer() {
                   ))}
                 </select>
               </div>
-
-              {/* Volume selector */}
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-zinc-500">Calls / mo</span>
                 <div className="flex gap-1">
@@ -346,31 +345,63 @@ export function Optimizer() {
               </div>
             </div>
 
-            {/* Before / After / Net — cost shown per 1k calls for legibility */}
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <StatBox
-                label="Before / 1k"
-                value={money(costBefore * 1000)}
-                sub={`${compact(result.tokensBefore)} tok`}
-              />
-              <StatBox
-                label="After / 1k"
-                value={money(costAfter * 1000)}
-                sub={`${compact(result.tokensAfter)} tok`}
-                accent
-              />
-              <StatBox
-                label="Net / month"
-                value={money(netPerMonth)}
-                sub={`at ${compact(calls)} calls`}
-                accent
-              />
+            {/* Three-input breakdown table */}
+            <div className="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60">
+              {/* Header */}
+              <div className="grid grid-cols-4 gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                <span>Factor</span>
+                <span className="text-right">Before</span>
+                <span className="text-right">After</span>
+                <span className="text-right">Delta</span>
+              </div>
+
+              {/* 1. Prompt size */}
+              <div className="grid grid-cols-4 items-center gap-2 px-3 py-2.5 text-sm">
+                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">Prompt size</span>
+                <span className="text-right tabular-nums text-xs text-zinc-500">{compact(result.rawTokensBefore)} tok</span>
+                <span className="text-right tabular-nums text-xs text-zinc-500">{compact(result.tokensAfter)} tok</span>
+                <span className="text-right tabular-nums text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  −{Math.round((1 - result.tokensAfter / Math.max(1, result.rawTokensBefore)) * 100)}%
+                </span>
+              </div>
+
+              {/* 2. API call cost */}
+              <div className="grid grid-cols-4 items-center gap-2 px-3 py-2.5 text-sm">
+                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">API cost / 1k</span>
+                <span className="text-right tabular-nums text-xs text-zinc-500">{money(costBefore * 1000)}</span>
+                <span className="text-right tabular-nums text-xs text-zinc-500">{money(costAfter * 1000)}</span>
+                <span className="text-right tabular-nums text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  −{money((costBefore - costAfter) * 1000)}
+                </span>
+              </div>
+
+              {/* 3. Thinking tokens */}
+              <div className="grid grid-cols-4 items-center gap-2 px-3 py-2.5 text-sm">
+                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">Thinking tokens</span>
+                <span className="text-right tabular-nums text-xs text-zinc-500">{compact(totalAttnBefore)}</span>
+                <span className="text-right tabular-nums text-xs text-zinc-500">{compact(totalAttnAfter)}</span>
+                <span className="text-right tabular-nums text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  {attnFactor >= 1.05 ? `${attnFactor.toFixed(1)}×` : '~1×'}
+                </span>
+              </div>
+
+              {/* Net savings */}
+              <div className="grid grid-cols-4 items-center gap-2 bg-emerald-50/60 px-3 py-3 dark:bg-emerald-950/20">
+                <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Net / month</span>
+                <span className="col-span-2 text-right text-[10px] text-zinc-400">
+                  savings × {compact(calls)} calls − opt. cost ({money(result.optimizationCost)})
+                </span>
+                <span className="text-right text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {money(netPerMonth)}
+                </span>
+              </div>
             </div>
 
-            <p className="mt-2 text-xs text-zinc-400">
-              Before/After shown per 1,000 calls. Net = (before − after) × {compact(calls)} calls − opt. cost ({money(result.optimizationCost)}).
-              {result.mode === 'expanded' ? ' Before includes ~follow-up tokens.' : ''}
-            </p>
+            {result.mode === 'expanded' && (
+              <p className="mt-2 text-[10px] text-zinc-400">
+                Before token count includes ~{result.roundsSaved} follow-up round{(result.roundsSaved ?? 0) > 1 ? 's' : ''} averted.
+              </p>
+            )}
           </div>
         </>
       )}
