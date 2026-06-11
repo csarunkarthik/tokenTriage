@@ -131,8 +131,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
 
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+    <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
       {children}
     </div>
   );
