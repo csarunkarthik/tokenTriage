@@ -117,10 +117,28 @@ export function recommendedModels(taskType: TaskType): Record<Provider, ModelRec
   return { anthropic: pick('anthropic'), openai: pick('openai'), google: pick('google') };
 }
 
-// Single best suggestion: cheapest capable model across ALL providers.
+// Maps task types to Anthropic's three-tier hierarchy.
+const TASK_TIER: Record<TaskType, 'fast' | 'balanced' | 'powerful'> = {
+  qa:            'fast',
+  extraction:    'fast',
+  summarization: 'fast',
+  coding:        'balanced',
+  analysis:      'balanced',
+  creative:      'balanced',
+  planning:      'powerful',
+  agentic:       'powerful',
+};
+
+// Canonical suggestion per tier using Anthropic's own naming convention.
+const TIER_PRIMARY: Record<'fast' | 'balanced' | 'powerful', string> = {
+  fast:     'claude-haiku-4-5',
+  balanced: 'claude-sonnet-4-6',
+  powerful: 'claude-opus-4-8',
+};
+
+// Single suggested model: follows Haiku → Sonnet → Opus for each task tier.
 export function suggestModel(taskType: TaskType): ModelRec {
-  const fits = ALL_MODELS
-    .filter(m => m.bestFor.includes(taskType))
-    .sort((a, b) => a.inputPerMTok - b.inputPerMTok);
-  return fits[0] ?? ALL_MODELS[0];
+  const tier = TASK_TIER[taskType] ?? 'balanced';
+  const id   = TIER_PRIMARY[tier];
+  return ALL_MODELS.find(m => m.id === id) ?? ALL_MODELS[1];
 }
